@@ -9,24 +9,25 @@ var path = require('path');
 var creds = new AWS.EnvironmentCredentials('AWS');
 
 var esDomain = {
-    endpoint: ES_DOMAIN,
+    endpoint: process.env.ES_DOMAIN,
     region: 'us-east-1',
-    index: 'ES_INDEX',
-    doctype: 'ES_TYPE'
+    index: process.env.ES_INDEX,
+    doctype: process.env.ES_TYPE
 };
 
 var esEndpoint =  new AWS.Endpoint(esDomain.endpoint);
 
 exports.handler = (event, context) => {
-    var message = event.Records[0].Sns.Message;
+    var message = JSON.parse(event.Records[0].Sns.Message);
     console.log('From SNS:', message);
     
-    var messageJson = JSON.parse(message);
-    var headersArray = messageJson.mail.headers;
-    messageJson.mail.headers = {};
-    headersArray.forEach(function(entry) { messageJson.mail.headers[entry.name] = entry.value });
+    var headersArray = message.mail.headers;
+    if (typeof headersArray !== 'undefined') {
+        message.mail.headers = {};
+        headersArray.forEach(function(entry) { message.mail.headers[entry.name] = entry.value });
+    }
 
-    postDocumentToES(messageJson, context);
+    postDocumentToES(message, context);
     
 };
 
@@ -65,4 +66,3 @@ function postDocumentToES(doc, context) {
         context.fail();
     });
 }
-
